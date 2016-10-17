@@ -1,0 +1,243 @@
+---
+title: "Data Exploration: Restaurant timings "
+author: "Urvi Kalia"
+date: "17 August 2016"
+output:
+  html_document:
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+    toc_float: yes
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+The purpose of this documentation is to showcase the findings of the exploratory data analysis on given restaurant data.
+
+To brief about the dataset , It contains a bunch of restaurant names and their open hours.The given data is preprocessed and converted to a convenient to use format.
+
+```{r load-packages, message = FALSE,echo=FALSE}
+library(ggplot2)
+library(dplyr)
+library(knitr)
+library(grid)
+library(gridExtra)
+library(stringr)
+```
+
+```{r echo=FALSE}
+read_chunk("TransformDataForAnalysis.R")
+read_chunk("BreakfastLunchDinnerOptions.R")
+```
+
+```{r TransformDataForAnalysis,echo=FALSE,warning=FALSE,message=FALSE}
+```
+
+```{r BreakfastLunchDinnerOptions,echo=FALSE,warning=FALSE,message=FALSE}
+```
+```{r initial-setup,echo=FALSE}
+data <- read.csv("TransformedOutput.csv",header = TRUE)
+theme <- theme(axis.text=element_text(size=7),axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),plot.title = element_text(size=9, margin = margin(5, 0, 5, 0))) 
+customeTheme <-theme(axis.text=element_text(size=7),axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),plot.title = element_text(size=9),legend.text=element_text(size=7),legend.title=element_text(size=7)) 
+
+```
+
+
+## Exploratory Analysis 
+
+From the given data , few variables are dervied.This includes open duration for every weekday, total open duration for a week, weekday and weekends.Restaurants are also day wise categorized with respect to options available i.e. breakfast, lunch, dinner and their combinations based on their timings.
+Options being served are categorized as:
+
+ * breakfast
+ * lunch 
+ * dinner
+ * breakfast & lunch
+ * breakfast & dinner
+ * lunch & dinner
+ * all (i.e. breakfast , lunch, dinner all three are served)
+
+Below are timings for breakfast, lunch and dinner being considered.
+
+ * breakfast : 7:00 am - 10:30 am
+ * lunch     : 12:00 pm - 3:00 pm
+ * dinner    : 7:00 pm - 11:00 pm    
+
+
+### Duration
+
+Considering the total open time period over the week, weekdays and weekends.Few of the findings are listed below :
+
+```{r echo=FALSE}
+longestWeeklyOpen <-data %>% filter(TotalDiffInHrs ==max(data$TotalDiffInHrs)) %>% select(restaurant)
+shortestWeeklyOpen <-data %>% filter(TotalDiffInHrs ==min(TotalDiffInHrs)) %>% select(restaurant)
+
+longestWeekdayOpen <- data %>% filter(WeekdayDiffInHrs ==max(WeekdayDiffInHrs)) %>% select(restaurant)
+shortestWeekdayOpen <- data %>% filter(WeekdayDiffInHrs ==min(WeekdayDiffInHrs)) %>% select(restaurant)
+
+longestWeekendOpen <- data %>% filter(WeekendDiffInHrs ==max(WeekendDiffInHrs)) %>% select(restaurant)
+shortestWeekendOpen <-data %>% filter(WeekendDiffInHrs ==min(WeekendDiffInHrs)) %>% select(restaurant)
+```
+
+
+| Condition         | Longest Open          | Shortest Open          |
+| ----------------- |:---------------------:| ----------------------:|
+| Weekly [Mon-Sun]  | `r longestWeeklyOpen` | `r shortestWeeklyOpen` |
+| Weekdays [Mon-Fri]| `r longestWeekdayOpen`| `r shortestWeekdayOpen`|
+| Weekends [Sat-Sun]| `r longestWeekendOpen`| `r shortestWeekendOpen`|
+|                   |                       |                        |
+
+```{r Daywise longest-shortest open,echo=FALSE}
+maxSummary <-data %>% summarise(maxMonDiff = max(MonDiffInHrs),maxTueDiff=max(TueDiffInHrs),maxWedDiff=max(WedDiffInHrs),
+maxThuDiff=max(ThuDiffInHrs),maxFriDiff=max(FriDiffInHrs),maxSatDiff = max(SatDiffInHrs),maxSunDiff=max(SunDiffInHrs))
+
+minSummary <-data %>% summarise(minMonDiff = min(MonDiffInHrs),minTueDiff=min(TueDiffInHrs),minWedDiff=min(WedDiffInHrs),
+minThuDiff=min(ThuDiffInHrs),minFriDiff=min(FriDiffInHrs),minSatDiff = min(SatDiffInHrs),minSunDiff=min(SunDiffInHrs))
+
+## exclude restaurants which are closed on tuesday and Sunday 
+minSummary$minTueDiff <-min(data[-c(which(data$TueDiffInHrs==0)),c("TueDiffInHrs")])
+minSummary$minSunDiff <- min(data[-c(which(data$SunDiffInHrs==0)),c("SunDiffInHrs")])
+
+maxSummary$MonRestaurant <- data %>% filter(MonDiffInHrs ==maxSummary$maxMonDiff) %>%select(restaurant)
+maxSummary$TueRestaurant <- data %>% filter(TueDiffInHrs== maxSummary$maxTueDiff) %>%select(restaurant)
+maxSummary$WedRestaurant <- data %>% filter(WedDiffInHrs== maxSummary$maxWedDiff) %>%select(restaurant)
+maxSummary$ThuRestaurant <- data %>% filter(ThuDiffInHrs== maxSummary$maxThuDiff) %>%select(restaurant)
+maxSummary$FriRestaurant <- data %>% filter(FriDiffInHrs== maxSummary$maxFriDiff) %>%select(restaurant)
+maxSummary$SatRestaurant <- data %>% filter(SatDiffInHrs== maxSummary$maxSatDiff) %>%select(restaurant)
+maxSummary$SunRestaurant <- data %>% filter(SunDiffInHrs== maxSummary$maxSunDiff) %>%select(restaurant)
+
+monMinRestaurant <- data %>% filter(MonDiffInHrs ==minSummary$minMonDiff) %>%select(restaurant)
+tueMinRestaurant <- data %>% filter(TueDiffInHrs ==minSummary$minTueDiff) %>%select(restaurant)
+wedMinRestaurant <- data %>% filter(WedDiffInHrs ==minSummary$minWedDiff) %>%select(restaurant)
+thuMinRestaurant <- data %>% filter(ThuDiffInHrs ==minSummary$minThuDiff) %>%select(restaurant)
+friMinRestaurant <- data %>% filter(FriDiffInHrs ==minSummary$minFriDiff) %>%select(restaurant)
+satMinRestaurant <- data %>% filter(SatDiffInHrs ==minSummary$minSatDiff) %>%select(restaurant)
+sunMinRestaurant <- data %>% filter(SunDiffInHrs ==minSummary$minSunDiff) %>%select(restaurant)
+```
+
+#### Longest open restaurant day wise
+
+| Day        | Restaurant                   | Approx. Duration (hrs)    |
+| ---------- |:----------------------------:| -------------------------:|
+| Monday     | `r maxSummary$MonRestaurant` | `r maxSummary$maxMonDiff` |
+| Tuesday    | `r maxSummary$TueRestaurant` | `r maxSummary$maxMonDiff` |
+| Wednesday  | `r maxSummary$WedRestaurant` | `r maxSummary$maxMonDiff` |
+| Thursday   | `r maxSummary$ThuRestaurant` | `r maxSummary$maxMonDiff` |
+| Friday     | `r maxSummary$FriRestaurant` | `r maxSummary$maxMonDiff` |
+| Saturday   | `r maxSummary$SatRestaurant` | `r maxSummary$maxMonDiff` |
+| Sunday     | `r maxSummary$SunRestaurant` | `r maxSummary$maxMonDiff` |
+|            |                              |                           |
+
+#### Shortest open restaurant day wise
+
+| Day        | Restaurant                   | Approx. Duration (hrs)    |
+| ---------- | :----------------------------| -------------------------:|
+| Monday     | `r monMinRestaurant`         | `r minSummary$minMonDiff` |
+| Tuesday    | `r tueMinRestaurant`         | `r minSummary$minTueDiff` |
+| Wednesday  | `r wedMinRestaurant`         | `r minSummary$minWedDiff` |
+| Thursday   | `r unlist(thuMinRestaurant)` | `r minSummary$minThuDiff` |
+| Friday     | `r unlist(friMinRestaurant)` | `r minSummary$minFriDiff` |
+| Saturday   | `r satMinRestaurant`         | `r minSummary$minSatDiff` |
+| Sunday     | `r sunMinRestaurant`         | `r minSummary$minSunDiff` |
+|            |                              |                           |
+
+```{r total-open-hours,echo=FALSE}
+totalOpenHours <- ggplot(data,aes(x=restaurant,y=TotalDiffInHrs))+ geom_point(aes(x = restaurant, y = TotalDiffInHrs, colour = TotalDiffInHrs==max(TotalDiffInHrs)))+ scale_colour_manual(name = 'Maximum duration', values = setNames(c('dodgerblue4','goldenrod1'),c(T, F))) + ylim(c(50,120)) +
+  xlab("") + ylab("Approx. duration (in hours)")+ggtitle("Total Open Hours per  week") +customeTheme+
+geom_text(aes(label=ifelse(TotalDiffInHrs==max(TotalDiffInHrs),as.character(str_c("   ",restaurant)),'')),hjust=0,vjust=0,size=2.5)
+
+grid.arrange(totalOpenHours,ncol=1)
+```
+
+```{r Weekday-open-hours,echo=FALSE}
+weeklyTotalOpenHours <- ggplot(data,aes(x=restaurant,y=WeekdayDiffInHrs))+ geom_point(aes(x = restaurant, y = WeekdayDiffInHrs, colour = WeekdayDiffInHrs==min(WeekdayDiffInHrs)))+ scale_colour_manual(name = 'Minimum duration', values = setNames(c('dodgerblue4','goldenrod1'),c(T, F))) + 
+  xlab("") + ylab("Approx. duration (in hours)")+ggtitle("Total Open Hours per restuarant on weekDays") +customeTheme+
+geom_text(aes(label=ifelse(WeekdayDiffInHrs==min(WeekdayDiffInHrs),as.character(str_c("   ",restaurant)),'')),hjust=0,vjust=0,size=2.5)
+
+grid.arrange(weeklyTotalOpenHours,ncol=1)
+
+```
+
+```{r Weekend-open-hours,echo=FALSE}
+weekendTotalOpenHours <- ggplot(data,aes(x=restaurant,y=WeekendDiffInHrs))+ geom_point(aes(x = restaurant, y = WeekendDiffInHrs, colour = WeekendDiffInHrs==min(WeekendDiffInHrs)))+ scale_colour_manual(name = 'Minimum duration', values = setNames(c('dodgerblue4','goldenrod1'),c(T, F))) + 
+  xlab("") + ylab("Approx. duration (in hours)")+ggtitle("Total Open Hours per restuarant on weekends") +customeTheme+
+geom_text(aes(label=ifelse(WeekendDiffInHrs==min(WeekendDiffInHrs),as.character(str_c("   ",restaurant)),'')),hjust=0,vjust=0,size=2.5)
+
+grid.arrange(weekendTotalOpenHours,ncol=1)
+```
+
+
+
+```{r,echo=FALSE}
+foodOptions <- read.csv("BreakFastLunchDinnerOptions.csv",header = TRUE)
+df <-merge(x = data,y=foodOptions,by = "restaurant")
+df$displayName <- str_trim(str_replace(df$restaurant,pattern = "Restaurant",replacement = ""))
+```
+
+### Weekly Off
+
+Only four restaurants , seams to take a weekly off.One on tuesday and rest on sunday as depicted below.
+```{r,echo=FALSE}
+TueClosed <- df %>% filter(TueOptions=="Closed") %>% select(restaurant)
+SundayClosed <- df %>% filter(SunOptions=="Closed") %>% select(restaurant)
+```
+
+| Day        | Restaurant                   | 
+| ---------- |-----------------------------:| 
+| Tuesday    | `r TueClosed`                |
+| Sunday     | `r unlist(SundayClosed)`     |
+|            |                              |
+
+### Distribution
+
+1. Lunch and dinner is served in more than 80% of restaurants.
+2. On weekdays, almost 4% of restaurants only serve dinner.This percentage is increased to 11% on saturday and 9% on sunday.
+3. Only Blu restaurant serves breakfast and lunch on weekends. 
+4. More than 13% of restaurants server all three i.e. breakfast,lunch and dinner from monday to thursday.It is increased further by 2% on friday, saturday and sunday.
+
+```{r Tuesday,echo=FALSE}
+tueOpenHours <- ggplot(df)+ geom_point(aes(x = displayName, y = TueDiffInHrs,color=TueOptions))+ xlab("") + ylab("Approx. duration (in hours)")+ggtitle("Open Hours on Tuesday") +customeTheme
+grid.arrange(tueOpenHours,ncol=1)
+```
+
+```{r Sunday,echo=FALSE}
+sunOpenHours <- ggplot(df)+ geom_point(aes(x = displayName, y = SunDiffInHrs,color=SunOptions))+ xlab("") + ylab("Approx. duration (in hours)")+ggtitle("Open Hours on Sunday") +customeTheme
+grid.arrange(sunOpenHours,ncol=1)
+```
+
+```{r option distribution,echo=FALSE}
+monOption <-ggplot(df,aes(x=MonOptions,fill=MonOptions))+ geom_bar()+ xlab("") + ylab("Frequency") +ggtitle("Monday") +scale_fill_brewer(palette="Greens",guide=FALSE) + theme_minimal() + customeTheme
+
+tueOption <-ggplot(df,aes(x=TueOptions,fill=TueOptions))+ geom_bar()+ xlab("") + ylab("") +ggtitle("Tuesday") +scale_fill_brewer(palette="Greens",guide=FALSE)+theme_minimal() + customeTheme
+
+wedOption <-ggplot(df,aes(x=WedOptions,fill=WedOptions))+ geom_bar()+ xlab("") + ylab("") +ggtitle("Wednesday") +scale_fill_brewer(palette="Greens",guide=FALSE) + theme_minimal() + customeTheme
+grid.arrange(monOption,tueOption,wedOption,ncol=3)
+
+```
+
+
+```{r option distribution2,echo=FALSE}
+wedOption <-ggplot(df,aes(x=WedOptions,fill=WedOptions))+ geom_bar()+ xlab("") + ylab("Frequency") +ggtitle("Wednesday") +scale_fill_brewer(palette="Greens",guide=FALSE) + theme_minimal() + customeTheme
+
+thuOption <-ggplot(df,aes(x=ThuOptions,fill=ThuOptions))+ geom_bar()+ xlab("") + ylab("") +ggtitle("Thusday") +scale_fill_brewer(palette="Greens",guide=FALSE)+theme_minimal() + customeTheme
+
+friOption <-ggplot(df,aes(x=FriOptions,fill=FriOptions))+ geom_bar()+ xlab("") + ylab("") +ggtitle("Friday") +scale_fill_brewer(palette="Greens",guide=FALSE) + theme_minimal() + customeTheme
+grid.arrange(wedOption,thuOption,friOption,ncol=3)
+
+```
+
+```{r option distribution3,echo=FALSE}
+satOption <-ggplot(df,aes(x=SatOptions,fill=SatOptions))+ geom_bar()+ xlab("") + ylab("Frequency") +ggtitle("Saturday") +scale_fill_brewer(palette="Greens",guide=FALSE) + theme_minimal() + customeTheme
+
+sunOption <-ggplot(df,aes(x=SunOptions,fill=SunOptions))+ geom_bar()+ xlab("") + ylab("") +ggtitle("Sunday") +scale_fill_brewer(palette="Greens",guide=FALSE)+theme_minimal() + customeTheme
+
+grid.arrange(satOption,sunOption,ncol=2)
+```
+
+#### Others
+1. On weekdays ,80% of the restaurants open at around 11 am / 11:30 am.
+2. Other that Friday , Saturaday and Sunday , around 40% of the restaurants are open till 10 pm.
+3. Friday and Saturday Nights , Number of restaurants open till 11 pm are almost double that on any weekday.
